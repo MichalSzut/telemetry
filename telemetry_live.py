@@ -17,7 +17,7 @@ REFRESH_RATE = 100      # Interwał odświeżania w ms
 class LiveTelemetryDashboard:
     def __init__(self, root):
         self.root = root
-        self.root.title("Hidrive Live Telemetry Dashboard")
+        self.root.title("Hydrive Live Telemetry Dashboard")
         self.root.geometry("1400x800")
         self.root.configure(bg="#2b2b2b")
         
@@ -45,7 +45,7 @@ class LiveTelemetryDashboard:
         ctrl_frame = tk.Frame(self.root, bg="#1e1e1e", pady=10)
         ctrl_frame.pack(side=tk.TOP, fill=tk.X)
         
-        tk.Label(ctrl_frame, text="HIDRIVE TELEMETRY LIVE", fg="lime", bg="#1e1e1e", 
+        tk.Label(ctrl_frame, text="HYDRIVE TELEMETRY LIVE", fg="lime", bg="#1e1e1e", 
                  font=("Arial", 14, "bold")).pack(side=tk.LEFT, padx=20)
         
         btn_load = tk.Button(ctrl_frame, text="Wczytaj strumień danych (TXT)", command=self.load_stream, 

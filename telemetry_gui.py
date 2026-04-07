@@ -7,7 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class TelemetryAnalyzer:
     def __init__(self, root):
         self.root = root
-        self.root.title("Hidrive Telemetry Analyzer - Shell Eco-marathon")
+        self.root.title("Hydrive Telemetry Analyzer - Shell Eco-marathon")
         self.root.geometry("900x600")
         
         # Słowniki na zdekodowane dane
@@ -111,7 +111,7 @@ class TelemetryAnalyzer:
         self.ax.plot(sampled_time, sampled_values, label=f"Parametr: {param}", color="#ff5722", linewidth=1.5)
         
         # Estetyka wykresu
-        self.ax.set_title(f"Telemetria Hidrive - {param.upper()}", fontsize=14, fontweight='bold')
+        self.ax.set_title(f"Telemetria Hydrive - {param.upper()}", fontsize=14, fontweight='bold')
         self.ax.set_xlabel("Czas [ms]", fontsize=11)
         self.ax.set_ylabel("Wartość", fontsize=11)
         self.ax.grid(True, linestyle="--", alpha=0.6)
