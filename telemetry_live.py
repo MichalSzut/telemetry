@@ -6,12 +6,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.animation import FuncAnimation
 from collections import deque
 
-# --- KONFIGURACJA DASHBOARDU ---
+
 # Ilość próbek widoczna jednocześnie na wykresie (szerokość okna przesuwnego)
 WINDOW_SIZE = 200 
-# --- OPTYMALIZACJA ---
+
 WINDOW_SIZE = 150      # Mniejszy bufor = szybsze rysowanie
-SKIP_STEP = 15         # Bierzemy co 15-stą próbkę (to o co prosiłeś)
+SKIP_STEP = 15         
 REFRESH_RATE = 100      # Interwał odświeżania w ms
 
 class LiveTelemetryDashboard:
@@ -37,15 +37,15 @@ class LiveTelemetryDashboard:
         self.setup_ui()
         self.setup_plots()
         
-        # Konfiguracja animacji (odświeżanie co 50 ms)
+        # Konfiguracja animacji 
         self.ani = FuncAnimation(self.fig, self.update_dashboard, interval=50, blit=False, cache_frame_data=False)
 
     def setup_ui(self):
-        # Panel sterowania na samej górze
+        # Panel sterowania na samej górze, wgrywanie danych i tytuł, stop/start
         ctrl_frame = tk.Frame(self.root, bg="#1e1e1e", pady=10)
         ctrl_frame.pack(side=tk.TOP, fill=tk.X)
         
-        tk.Label(ctrl_frame, text="🟢 HIDRIVE TELEMETRY LIVE", fg="lime", bg="#1e1e1e", 
+        tk.Label(ctrl_frame, text="HIDRIVE TELEMETRY LIVE", fg="lime", bg="#1e1e1e", 
                  font=("Arial", 14, "bold")).pack(side=tk.LEFT, padx=20)
         
         btn_load = tk.Button(ctrl_frame, text="Wczytaj strumień danych (TXT)", command=self.load_stream, 
@@ -69,7 +69,7 @@ class LiveTelemetryDashboard:
         self.axes = {}
         self.lines = {}
         
-        # --- KOLUMNA 1: NAPIĘCIA (v1-v4) ---
+        #KOLUMNA 1: NAPIĘCIA (v1-v4)
         for i in range(4):
             ax = self.fig.add_subplot(gs[i, 0])
             ax.set_title(f"Napięcie V{i+1} [V]", color="cyan", fontsize=10, loc="left", pad=3)
@@ -78,7 +78,7 @@ class LiveTelemetryDashboard:
             self.axes[f"v{i+1}"] = ax
             self.lines[f"v{i+1}"] = line
 
-        # --- KOLUMNA 2: PRĄDY (c1-c4) ---
+        #KOLUMNA 2: PRĄDY (c1-c4)
         for i in range(4):
             ax = self.fig.add_subplot(gs[i, 1])
             ax.set_title(f"Prąd C{i+1} [A]", color="#ff9900", fontsize=10, loc="left", pad=3)
@@ -87,18 +87,16 @@ class LiveTelemetryDashboard:
             self.axes[f"c{i+1}"] = ax
             self.lines[f"c{i+1}"] = line
 
-        # --- KOLUMNA 3: PRĘDKOŚĆ (s) ---
-        # Zajmuje wszystkie 4 wiersze w trzeciej kolumnie!
+        #KOLUMNA 3: PRĘDKOŚĆ (s)
         ax_s = self.fig.add_subplot(gs[:, 2])
         ax_s.set_title("Prędkość [km/h]", color="lime", fontsize=14, fontweight="bold")
         ax_s.grid(True, alpha=0.3, linestyle="--")
         line_s, = ax_s.plot([], [], color="lime", lw=2.5)
-        # Cieniowanie pod wykresem prędkości dla efektu WOW
+        # Cieniowanie pod wykresem
         self.fill_s = None
         self.axes["s"] = ax_s
         self.lines["s"] = line_s
 
-        # Osadzenie wykresów w Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
@@ -107,22 +105,31 @@ class LiveTelemetryDashboard:
         if filepath:
             self.file_iterator = open(filepath, 'r', encoding='utf-8')
             self.is_playing = True
-            self.start_time = None # Reset czasu dla nowej skali
             
-            # --- DODATEK: Przeskocz do momentu, gdy bolid rusza ---
-            found_movement = False
-            while not found_movement:
-                pos = self.file_iterator.tell() # Zapamiętaj pozycję
+            #Tu zaczyna się przejazd -> 423 000ms
+            TARGET_TIMESTAMP = 423000
+            
+            # Pętla czyta plik w tle
+            while True:
+                pos = self.file_iterator.tell() # Zapamiętujemy pozycję linijki
                 line = self.file_iterator.readline()
-                if not line: break
+                
+                if not line:
+                    break # Doszliśmy do końca pliku
+                    
                 try:
                     record = json.loads(line)
-                    if float(record.get("s", 0)) > 0:
-                        self.file_iterator.seek(pos) # Cofnij o jedną linię, żeby zacząć od ruchu
-                        found_movement = True
-                except: continue
-            # -----------------------------------------------------
-
+                    # Jeśli znaleźliśmy nasz moment (lub pierwszy większy)...
+                    if float(record.get("timestamp", 0)) >= TARGET_TIMESTAMP:
+                        self.file_iterator.seek(pos) # ...cofamy "kursor" pliku o tę jedną linijkę
+                        
+                        # Ustawiamy czas startowy, dzięki temu oś X zacznie się ładnie od zera
+                        self.start_time = float(record.get("timestamp", 0))
+                        break # Wychodzimy z pętli, jesteśmy gotowi do rysowania!
+                except Exception:
+                    continue # Ignorujemy uszkodzone linijki
+            
+            # Czyszczenie buforów z danymi wykresów
             self.timestamps.clear()
             for key in self.data:
                 self.data[key].clear()
@@ -157,7 +164,7 @@ class LiveTelemetryDashboard:
         if last_valid_record:
             record = last_valid_record
             if "timestamp" in record:
-                # Opcjonalna normalizacja czasu do sekund (dla czytelności)
+                #normalizacja czasu do sekund (zmieniamy milisekundy na sekundy)
                 if self.start_time is None:
                     self.start_time = record["timestamp"]
                 
@@ -188,12 +195,12 @@ class LiveTelemetryDashboard:
                     ax.relim()
                     ax.autoscale_view(scalex=False, scaley=True)
 
-            # Cieniowanie prędkości (wyłącz to, jeśli nadal muli - wypełnienia są ciężkie)
+            # Cieniowanie prędkości
             if self.fill_s is not None:
                 self.fill_s.remove()
             self.fill_s = self.axes["s"].fill_between(t_data, list(self.data["s"]), color="lime", alpha=0.1)
 
-            self.canvas.draw_idle() # draw_idle jest lżejsze niż draw()
+            self.canvas.draw_idle() 
 
 if __name__ == "__main__":
     root = tk.Tk()
