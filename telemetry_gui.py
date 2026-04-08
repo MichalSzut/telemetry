@@ -43,7 +43,6 @@ class TelemetryAnalyzer:
         self.sampling_spin.pack(side=tk.LEFT, padx=5)
         
         # --- Obszar wykresu (Matplotlib wbudowany w Tkinter) ---
-        # Ustawiamy DPI na 100, żeby wykres był ostry
         self.fig, self.ax = plt.subplots(figsize=(8, 5), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
@@ -59,7 +58,7 @@ class TelemetryAnalyzer:
         self.timestamps.clear()
         
         try:
-            # Odczyt linia po linii (bezpieczne dla pamięci RAM przy dużych logach) [cite: 38221]
+            # Odczyt linia po linii
             with open(filepath, 'r', encoding='utf-8') as file:
                 for line in file:
                     line = line.strip()
@@ -67,15 +66,14 @@ class TelemetryAnalyzer:
                         continue
                     try:
                         record = json.loads(line)
-                        # Upewniamy się, że linia ma timestamp [cite: 38221]
                         if "timestamp" in record:
                             self.timestamps.append(record["timestamp"])
-                            # Pobieramy resztę wartości z danego rekordu [cite: 38221]
+                            # Reszta wartości z danego rekordu
                             for key in self.data.keys():
                                 if key in record:
                                     self.data[key].append(float(record[key]))
                     except json.JSONDecodeError:
-                        continue # Ciche pomijanie uszkodzonych linii z czujników
+                        continue # pomijanie uszkodzonych linii z czujników
                         
             # Aktualizacja UI po udanym wczytaniu
             self.param_cb['values'] = list(self.data.keys())
@@ -100,9 +98,7 @@ class TelemetryAnalyzer:
             
         if step < 1: step = 1
             
-        # P R Ó B K O W A N I E (Downsampling)
-        # Zamiast rysować np. 100 000 punktów, bierzemy co 'step' próbkę.
-        # Odciąża to procesor i sprawia, że interfejs nie "zamraża się".
+        # PRÓBKOWANIE
         sampled_time = self.timestamps[::step]
         sampled_values = self.data[param][::step]
         
